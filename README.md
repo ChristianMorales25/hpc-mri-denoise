@@ -58,13 +58,19 @@ python3 -m venv .venv          # if ensurepip is missing: --without-pip, then ge
    **1 mm**, noise **0%**, intensity non-uniformity **0%** (the clean reference).
 2. Anatomical model → *Normal brain* → **discrete (crisp)** phantom (tissue labels).
 
-Then:
+The crisp phantom is on the *Anatomical Models* page, not in the simulator
+form; its direct link is
+<https://brainweb.bic.mni.mcgill.ca/cgi/brainweb1?alias=phantom_1.0mm_normal_crisp&download=1>.
+Choose *raw byte (unsigned)* and *gnuzip*. Then, with both `.rawb.gz` files in
+one folder:
 
 ```bash
-.venv/bin/python scripts/prep_data.py brainweb \
-    --t1 t1_icbm_normal_1mm_pn0_rf0.rawb --crisp phantom_1.0mm_normal_crisp.rawb \
-    --out data/brainweb
+scripts/import_brainweb.sh /mnt/c/Users/<you>/Downloads
 ```
+
+This copies them into `data/raw`, checks their sizes, and runs
+`prep_data.py brainweb` to build `data/brainweb`.
+`scripts/preview.py` renders mid-slices of any volumes for a quick visual check.
 
 Both commands write `clean.vol`, `labels.vol`, and `noisy_<p>.vol` for Rician
 noise levels 3, 5, 7, 9 % (change with `--noise`).

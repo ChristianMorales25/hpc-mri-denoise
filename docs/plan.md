@@ -33,6 +33,25 @@ volumes across processes; faster NLM using precomputed patch distances
 - **Correctness**: every parallel version checked against the sequential
   baseline (`evaluate.py --ref`).
 
+## First BrainWeb run (181×217×181, 5 % noise, Oct 28)
+
+`scripts/brainweb_first_run.sh`, single runs, default parameters, NLM S=3 P=1.
+
+| Filter | seq | OpenMP (12 thr) | CUDA naive (total / kernel) | Tissue PSNR / SSIM |
+|---|--:|--:|--:|--:|
+| (noisy input) | | | | 26.0 dB / 0.771 |
+| Bilateral | 8.4 s | 1.24 s | 12.7 / 5.7 ms | 31.7 / 0.929 |
+| Diffusion 20 it | 6.1 s | 1.16 s | 16.0 / 7.4 ms | 29.5 / 0.887 |
+| NLM | (skipped, ~minutes) | 79.2 s | 465 / 457 ms | 34.9 / 0.965 |
+
+Observations to follow up:
+- Diffusion leaves isolated bright/dark speckles: with kappa = 0.05 the
+  conductance is ~0 across strong noise spikes, so they never diffuse
+  (a known Perona-Malik weakness). Try a parameter sweep on kappa and/or
+  the regularized variant (Gaussian-smoothed gradient, Catté et al. 1992).
+- For bilateral and diffusion, transfers are about half of the GPU total;
+  for NLM they are < 2 %. Good contrast for the transfer-cost section.
+
 ## Known caveats to discuss in the report
 
 - Whole-volume metrics are dominated by background, where Rician noise has a
