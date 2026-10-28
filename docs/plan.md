@@ -52,6 +52,34 @@ Observations to follow up:
 - For bilateral and diffusion, transfers are about half of the GPU total;
   for NLM they are < 2 %. Good contrast for the transfer-cost section.
 
+## NLM GPU optimization ladder (BrainWeb noisy_5, Oct 28)
+
+Kernel time, median of 3, block 8×8×4 (`scripts/nlm_variants.sh`).
+
+| Setting | naive | smem | sep v1 | sep v2 |
+|---|--:|--:|--:|--:|
+| S=3, P=1 | 516 ms | **211 ms** | 342 ms | 249 ms |
+| S=3, P=2 | 2960 ms | 1034 ms | 615 ms | **386 ms** |
+| S=5, P=1 | 2287 ms | **943 ms** | 1485 ms | 962 ms |
+
+- **smem**: tile + (S+P) halo in shared memory, same arithmetic as naive and
+  bit-identical output. 2.4–2.9× over naive.
+- **sep**: per offset, squared differences over the tile, then three 1D box
+  sums in shared memory (3 barriers per offset). Matches naive within 1e-6.
+  v1 recomputed shared-memory indices with integer div/mod every offset;
+  v2 precomputes them once per thread, which cut 27–37 %.
+- With 3×3×3 patches the separable trick saves too little arithmetic to beat
+  its barriers and halo work, so smem and sep tie. With 5×5×5 patches sep is
+  2.7× faster than smem and 7.7× faster than naive, as expected from
+  O(P) vs O(P³) work per offset.
+- Block sweep at S=3 P=1 (`scripts/nlm_block_sweep.sh`, results in
+  `results/nlm_blocks_S3P1.csv`): smem is flat across shapes (220–234 ms);
+  sep prefers compact blocks (8×8×4 best, 250 ms) because flat blocks
+  (e.g. 32×8×1) spend most of the D/B passes on the z-halo.
+
+Ideas if more NLM speed is needed: fuse the x/y box passes to drop a barrier;
+exploit weight symmetry w(x, x+s) = w(x+s, x) to halve the offsets.
+
 ## Known caveats to discuss in the report
 
 - Whole-volume metrics are dominated by background, where Rician noise has a

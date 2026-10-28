@@ -29,7 +29,8 @@ struct Args {
 
 [[noreturn]] void usage() {
     std::fprintf(stderr,
-                 "usage: denoise --algo {bilateral|nlm|diffusion} --impl {seq|omp|cuda} -i IN [-o OUT]\n"
+                 "usage: denoise --algo {bilateral|nlm|diffusion} --impl IMPL -i IN [-o OUT]\n"
+                 "  IMPL: seq | omp | cuda (naive) | cuda-smem, cuda-sep (nlm only)\n"
                  "  --threads N        OpenMP threads (default: all)\n"
                  "  --reps N           timed repetitions, median reported (default 3)\n"
                  "  --block X,Y,Z      CUDA block shape (default 8,8,4)\n"
@@ -101,14 +102,24 @@ int main(int argc, char** argv) {
     VolumeF out;
 
     std::vector<double> total, h2d, kernel, d2h;
-    const bool gpu = a.impl == "cuda";
+    const bool gpu = a.impl.rfind("cuda", 0) == 0;
+    if (gpu && a.impl != "cuda" && a.algo != "nlm") {
+        std::fprintf(stderr, "%s is only implemented for nlm\n", a.impl.c_str());
+        return 1;
+    }
     // One untimed warm-up run on the GPU absorbs context creation and JIT.
     const int runs = a.reps + (gpu ? 1 : 0);
     for (int r = 0; r < runs; ++r) {
         if (gpu) {
             GpuTiming t;
             if (a.algo == "bilateral") t = bilateral_cuda_naive(in, out, a.bil, a.launch);
-            else if (a.algo == "nlm") t = nlm_cuda_naive(in, out, a.nlm, a.launch);
+            else if (a.algo == "nlm") {
+                const NlmVariant v = a.impl == "cuda-smem"  ? NlmVariant::Smem
+                                     : a.impl == "cuda-sep" ? NlmVariant::Sep
+                                                            : NlmVariant::Naive;
+                if (a.impl != "cuda" && a.impl != "cuda-smem" && a.impl != "cuda-sep") usage();
+                t = nlm_cuda(in, out, a.nlm, a.launch, v);
+            }
             else if (a.algo == "diffusion") t = diffusion_cuda_naive(in, out, a.dif, a.launch);
             else usage();
             if (r == 0) continue;

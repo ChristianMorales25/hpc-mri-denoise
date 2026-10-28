@@ -43,7 +43,13 @@ struct LaunchConfig {
 
 GpuTiming bilateral_cuda_naive(const VolumeF& in, VolumeF& out, const BilateralParams& p,
                                const LaunchConfig& cfg);
-GpuTiming nlm_cuda_naive(const VolumeF& in, VolumeF& out, const NlmParams& p, const LaunchConfig& cfg);
+// NLM GPU versions, in order of optimization:
+//   Naive  one thread per voxel, all reads from global memory
+//   Smem   block tile + (S+P) halo in shared memory, same arithmetic as Naive
+//   Sep    Smem + patch distances as separable box sums of squared differences
+enum class NlmVariant { Naive, Smem, Sep };
+GpuTiming nlm_cuda(const VolumeF& in, VolumeF& out, const NlmParams& p, const LaunchConfig& cfg,
+                   NlmVariant variant);
 GpuTiming diffusion_cuda_naive(const VolumeF& in, VolumeF& out, const DiffusionParams& p,
                                const LaunchConfig& cfg);
 

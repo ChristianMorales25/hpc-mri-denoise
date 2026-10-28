@@ -13,7 +13,7 @@ CIIC 5019 High-Performance Computing, University of Puerto Rico at Mayagüez.
 | Stage | Sequential | OpenMP | CUDA naive | CUDA optimized |
 |---|:-:|:-:|:-:|:-:|
 | Bilateral filter | ✅ | ✅ | ✅ | ⬜ |
-| Non-local means | ✅ | ✅ | ✅ | ⬜ |
+| Non-local means | ✅ | ✅ | ✅ | ✅ `cuda-smem`, `cuda-sep` |
 | Anisotropic diffusion | ✅ | ✅ | ✅ | ⬜ |
 | Segmentation + morphology | ⬜ | ⬜ | ⬜ | ⬜ |
 | Connected-component labeling | ⬜ | ⬜ | ⬜ | ⬜ |
@@ -81,6 +81,11 @@ noise levels 3, 5, 7, 9 % (change with `--noise`).
 ./build/denoise --algo nlm --impl omp --threads 12 --search 3 --patch 1 --h 0.05 \
     -i data/synth128/noisy_5.vol -o results/nlm.vol
 ```
+
+`--impl` is `seq`, `omp`, or `cuda` (naive GPU) for every filter. NLM also has
+`cuda-smem` (shared-memory tile) and `cuda-sep` (shared memory plus separable
+patch distances); `scripts/nlm_variants.sh` and `scripts/nlm_block_sweep.sh`
+compare them.
 
 Each run prints one JSON line with the median time over `--reps` runs. CUDA
 runs also report host-to-device, kernel, and device-to-host time separately.
