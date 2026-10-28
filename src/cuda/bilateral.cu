@@ -3,8 +3,6 @@
 
 namespace {
 
-__device__ __forceinline__ int clampi(int v, int hi) { return v < 0 ? 0 : (v >= hi ? hi - 1 : v); }
-
 // Naive version: one thread per voxel, every neighbor read straight from
 // global memory. This is the reference point for the shared-memory version.
 __global__ void bilateral_naive_kernel(const float* __restrict__ in, float* __restrict__ out, int nx,
@@ -39,32 +37,24 @@ GpuTiming bilateral_cuda_naive(const VolumeF& in, VolumeF& out, const BilateralP
                                const LaunchConfig& cfg) {
     out = VolumeF(in.nx, in.ny, in.nz);
     const size_t bytes = in.size() * sizeof(float);
-    float *d_in = nullptr, *d_out = nullptr;
-    CUDA_CHECK(cudaMalloc(&d_in, bytes));
-    CUDA_CHECK(cudaMalloc(&d_out, bytes));
-
+    DeviceBuffer d_in(in.size()), d_out(in.size());
     GpuTiming t;
     EventTimer timer;
 
     timer.start();
-    CUDA_CHECK(cudaMemcpy(d_in, in.data.data(), bytes, cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(d_in.ptr, in.data.data(), bytes, cudaMemcpyHostToDevice));
     t.h2d_ms = timer.stop_ms();
 
     const dim3 block(cfg.bx, cfg.by, cfg.bz);
-    const dim3 grid((in.nx + block.x - 1) / block.x, (in.ny + block.y - 1) / block.y,
-                    (in.nz + block.z - 1) / block.z);
     timer.start();
-    bilateral_naive_kernel<<<grid, block>>>(d_in, d_out, in.nx, in.ny, in.nz, p.radius,
-                                            1.0f / (2.0f * p.sigma_spatial * p.sigma_spatial),
-                                            1.0f / (2.0f * p.sigma_range * p.sigma_range));
+    bilateral_naive_kernel<<<grid_for(in.nx, in.ny, in.nz, block), block>>>(
+        d_in.ptr, d_out.ptr, in.nx, in.ny, in.nz, p.radius,
+        1.0f / (2.0f * p.sigma_spatial * p.sigma_spatial), 1.0f / (2.0f * p.sigma_range * p.sigma_range));
     CUDA_CHECK(cudaGetLastError());
     t.kernel_ms = timer.stop_ms();
 
     timer.start();
-    CUDA_CHECK(cudaMemcpy(out.data.data(), d_out, bytes, cudaMemcpyDeviceToHost));
+    CUDA_CHECK(cudaMemcpy(out.data.data(), d_out.ptr, bytes, cudaMemcpyDeviceToHost));
     t.d2h_ms = timer.stop_ms();
-
-    CUDA_CHECK(cudaFree(d_in));
-    CUDA_CHECK(cudaFree(d_out));
     return t;
 }

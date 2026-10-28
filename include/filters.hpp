@@ -38,9 +38,13 @@ struct GpuTiming {
 
 struct LaunchConfig {
     int bx = 8, by = 8, bz = 4;
+    int chunk_z = 16;  // z-slices per launch for long kernels (NLM); 0 = whole volume
 };
 
 GpuTiming bilateral_cuda_naive(const VolumeF& in, VolumeF& out, const BilateralParams& p,
+                               const LaunchConfig& cfg);
+GpuTiming nlm_cuda_naive(const VolumeF& in, VolumeF& out, const NlmParams& p, const LaunchConfig& cfg);
+GpuTiming diffusion_cuda_naive(const VolumeF& in, VolumeF& out, const DiffusionParams& p,
                                const LaunchConfig& cfg);
 
 void print_device_info();

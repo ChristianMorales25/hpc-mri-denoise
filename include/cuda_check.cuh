@@ -15,6 +15,21 @@
         }                                                                             \
     } while (0)
 
+__device__ __forceinline__ int clampi(int v, int hi) { return v < 0 ? 0 : (v >= hi ? hi - 1 : v); }
+
+inline dim3 grid_for(int nx, int ny, int nz, const dim3& block) {
+    return dim3((nx + block.x - 1) / block.x, (ny + block.y - 1) / block.y, (nz + block.z - 1) / block.z);
+}
+
+// Owns a device allocation of n floats.
+struct DeviceBuffer {
+    float* ptr = nullptr;
+    explicit DeviceBuffer(size_t n) { CUDA_CHECK(cudaMalloc(&ptr, n * sizeof(float))); }
+    ~DeviceBuffer() { cudaFree(ptr); }
+    DeviceBuffer(const DeviceBuffer&) = delete;
+    DeviceBuffer& operator=(const DeviceBuffer&) = delete;
+};
+
 // Wraps a pair of CUDA events to time a region on the default stream.
 struct EventTimer {
     cudaEvent_t start_, stop_;

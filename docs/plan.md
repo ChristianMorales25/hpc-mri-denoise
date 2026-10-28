@@ -7,7 +7,7 @@ Proposal due **Nov 8, 2026**. Final project due **Dec 12, 2026**. Solo project.
 | Week of | Goal | Done when |
 |---|---|---|
 | Oct 28 | Scaffold, data pipeline, CPU baselines | ✅ seq/OpenMP for all three filters, naive CUDA bilateral, smoke test passes |
-| Nov 2 | Submit proposal (by Nov 8). Naive CUDA NLM and diffusion; BrainWeb data | All three filters on GPU and matching seq within float tolerance |
+| Nov 2 | Submit proposal (by Nov 8). ✅ Naive CUDA NLM and diffusion; BrainWeb data | ✅ All three filters on GPU, max diff vs seq ≤ 1.2e-6 |
 | Nov 9 | Optimized CUDA: shared-memory tiles with halos (bilateral, diffusion), NLM patch caching, multi-iteration diffusion | Measured speedup over naive, block-shape sweep |
 | Nov 16 | Downstream: threshold/k-means segmentation, 3D morphology, connected-component labeling (seq, OpenMP, CUDA union-find) | Dice per tissue vs BrainWeb labels; GPU labels match CPU exactly |
 | Nov 23 | Full experiment runs (week of Thanksgiving, keep it light) | All CSVs in `results/` |
@@ -43,10 +43,16 @@ volumes across processes; faster NLM using precomputed patch distances
 
 ## Smoke-test baseline (96³ synthetic, 5 % noise, Oct 28)
 
-| Filter | seq | OpenMP (12 thr) | CUDA naive (total) |
+Single runs, so expect some noise in the numbers.
+
+| Filter | seq | OpenMP (12 thr) | CUDA naive (total / kernel) |
 |---|--:|--:|--:|
-| Bilateral r=2 | 1121 ms | 194 ms | 2.0 ms (kernel 0.8 ms) |
-| Diffusion 20 it | 769 ms | 212 ms | – |
-| NLM S=2 P=1 | 21.7 s | 3.2 s | – |
+| Bilateral r=2 | 1033 ms | 220 ms | 2.8 / 1.1 ms |
+| Diffusion 20 it | 837 ms | 216 ms | 2.2 / 1.0 ms |
+| NLM S=2 P=1 | 22.7 s | 4.0 s | 26.6 / 25.2 ms |
 
 Tissue PSNR: noisy 27.4 dB → bilateral 33.7, diffusion 30.2, NLM 38.0.
+
+NLM S=5 P=1 on 192³ (CUDA naive): 1.72 s kernel with 16-slice chunks,
+1.88 s unchunked. The unchunked launch is already close to the ~2 s TDR
+limit, so chunking stays on by default (`--chunk 16`); its overhead is small.

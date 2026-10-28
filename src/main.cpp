@@ -33,6 +33,7 @@ struct Args {
                  "  --threads N        OpenMP threads (default: all)\n"
                  "  --reps N           timed repetitions, median reported (default 3)\n"
                  "  --block X,Y,Z      CUDA block shape (default 8,8,4)\n"
+                 "  --chunk N          z-slices per NLM launch, 0 = all (default 16; avoids TDR)\n"
                  "  bilateral: --radius R --sigma-s F --sigma-r F\n"
                  "  nlm:       --search S --patch P --h F\n"
                  "  diffusion: --iters N --kappa F --dt F\n"
@@ -57,6 +58,7 @@ Args parse(int argc, char** argv) {
         else if (k == "--block") {
             if (std::sscanf(next(), "%d,%d,%d", &a.launch.bx, &a.launch.by, &a.launch.bz) != 3) usage();
         }
+        else if (k == "--chunk") a.launch.chunk_z = std::atoi(next());
         else if (k == "--radius") a.bil.radius = std::atoi(next());
         else if (k == "--sigma-s") a.bil.sigma_spatial = std::atof(next());
         else if (k == "--sigma-r") a.bil.sigma_range = std::atof(next());
@@ -106,10 +108,9 @@ int main(int argc, char** argv) {
         if (gpu) {
             GpuTiming t;
             if (a.algo == "bilateral") t = bilateral_cuda_naive(in, out, a.bil, a.launch);
-            else {
-                std::fprintf(stderr, "cuda %s not implemented yet\n", a.algo.c_str());
-                return 1;
-            }
+            else if (a.algo == "nlm") t = nlm_cuda_naive(in, out, a.nlm, a.launch);
+            else if (a.algo == "diffusion") t = diffusion_cuda_naive(in, out, a.dif, a.launch);
+            else usage();
             if (r == 0) continue;
             total.push_back(t.total());
             h2d.push_back(t.h2d_ms);

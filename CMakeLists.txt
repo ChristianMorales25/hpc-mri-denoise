@@ -27,6 +27,8 @@ add_library(denoise_core
   src/cpu/nlm.cpp
   src/cpu/diffusion.cpp
   src/cuda/bilateral.cu
+  src/cuda/nlm.cu
+  src/cuda/diffusion.cu
   src/cuda/device.cu
 )
 target_include_directories(denoise_core PUBLIC include)

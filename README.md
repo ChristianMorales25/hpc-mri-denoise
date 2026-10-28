@@ -13,8 +13,8 @@ CIIC 5019 High-Performance Computing, University of Puerto Rico at Mayagüez.
 | Stage | Sequential | OpenMP | CUDA naive | CUDA optimized |
 |---|:-:|:-:|:-:|:-:|
 | Bilateral filter | ✅ | ✅ | ✅ | ⬜ |
-| Non-local means | ✅ | ✅ | ⬜ | ⬜ |
-| Anisotropic diffusion | ✅ | ✅ | ⬜ | ⬜ |
+| Non-local means | ✅ | ✅ | ✅ | ⬜ |
+| Anisotropic diffusion | ✅ | ✅ | ✅ | ⬜ |
 | Segmentation + morphology | ⬜ | ⬜ | ⬜ | ⬜ |
 | Connected-component labeling | ⬜ | ⬜ | ⬜ | ⬜ |
 

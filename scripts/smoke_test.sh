@@ -15,8 +15,6 @@ mkdir -p "$OUT"
 
 for impl in seq omp cuda; do
     $BIN --algo bilateral --impl $impl --reps 1 -i $IN -o $OUT/bil_$impl.vol
-done
-for impl in seq omp; do
     $BIN --algo diffusion --impl $impl --reps 1 -i $IN -o $OUT/dif_$impl.vol
     $BIN --algo nlm --impl $impl --reps 1 --search 2 -i $IN -o $OUT/nlm_$impl.vol
 done
