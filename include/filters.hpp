@@ -39,18 +39,24 @@ struct GpuTiming {
 struct LaunchConfig {
     int bx = 8, by = 8, bz = 4;
     int chunk_z = 16;  // z-slices per launch for long kernels (NLM); 0 = whole volume
+    int fuse = 2;      // diffusion iterations per launch for the fused variant
+    int zchunk = 32;   // z planes each fused-diffusion block marches through; 0 = all
 };
 
-GpuTiming bilateral_cuda_naive(const VolumeF& in, VolumeF& out, const BilateralParams& p,
-                               const LaunchConfig& cfg);
-// NLM GPU versions, in order of optimization:
-//   Naive  one thread per voxel, all reads from global memory
-//   Smem   block tile + (S+P) halo in shared memory, same arithmetic as Naive
-//   Sep    Smem + patch distances as separable box sums of squared differences
-enum class NlmVariant { Naive, Smem, Sep };
+// GPU versions, in order of optimization. Not every filter has every one:
+//   Naive  one thread per voxel, all reads from global memory       (all)
+//   Smem   block tile + halo in shared memory, same arithmetic      (all)
+//   Sep    Smem + NLM patch distances as separable box sums         (nlm)
+//   Fused  2.5D z-marching with several iterations per launch      (diffusion)
+//          uses a 2D block of bx*by threads (bz is ignored); each block's
+//          output tile is (bx - 2*fuse) x (by - 2*fuse) columns
+enum class GpuVariant { Naive, Smem, Sep, Fused };
+
+GpuTiming bilateral_cuda(const VolumeF& in, VolumeF& out, const BilateralParams& p, const LaunchConfig& cfg,
+                         GpuVariant variant);
 GpuTiming nlm_cuda(const VolumeF& in, VolumeF& out, const NlmParams& p, const LaunchConfig& cfg,
-                   NlmVariant variant);
-GpuTiming diffusion_cuda_naive(const VolumeF& in, VolumeF& out, const DiffusionParams& p,
-                               const LaunchConfig& cfg);
+                   GpuVariant variant);
+GpuTiming diffusion_cuda(const VolumeF& in, VolumeF& out, const DiffusionParams& p, const LaunchConfig& cfg,
+                         GpuVariant variant);
 
 void print_device_info();

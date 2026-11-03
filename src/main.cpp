@@ -30,20 +30,23 @@ struct Args {
 [[noreturn]] void usage() {
     std::fprintf(stderr,
                  "usage: denoise --algo {bilateral|nlm|diffusion} --impl IMPL -i IN [-o OUT]\n"
-                 "  IMPL: seq | omp | cuda (naive) | cuda-smem, cuda-sep (nlm only)\n"
+                 "  IMPL: seq | omp | cuda (naive) | cuda-smem | cuda-sep (nlm) | cuda-fused (diffusion)\n"
                  "  --threads N        OpenMP threads (default: all)\n"
                  "  --reps N           timed repetitions, median reported (default 3)\n"
-                 "  --block X,Y,Z      CUDA block shape (default 8,8,4)\n"
+                 "  --block X,Y,Z      CUDA block shape (default 8,8,4; 32,16,1 for cuda-fused)\n"
                  "  --chunk N          z-slices per NLM launch, 0 = all (default 16; avoids TDR)\n"
                  "  bilateral: --radius R --sigma-s F --sigma-r F\n"
                  "  nlm:       --search S --patch P --h F\n"
                  "  diffusion: --iters N --kappa F --dt F\n"
+                 "             cuda-fused: --fuse K iterations per launch (default 2),\n"
+                 "             --zchunk N z planes per block (default 32, 0 = all); 2D block, X and Y > 2K\n"
                  "  --device-info      print GPU properties and exit\n");
     std::exit(2);
 }
 
 Args parse(int argc, char** argv) {
     Args a;
+    bool block_given = false;
     for (int i = 1; i < argc; ++i) {
         std::string k = argv[i];
         auto next = [&]() -> const char* {
@@ -58,6 +61,7 @@ Args parse(int argc, char** argv) {
         else if (k == "--reps") a.reps = std::max(1, std::atoi(next()));
         else if (k == "--block") {
             if (std::sscanf(next(), "%d,%d,%d", &a.launch.bx, &a.launch.by, &a.launch.bz) != 3) usage();
+            block_given = true;
         }
         else if (k == "--chunk") a.launch.chunk_z = std::atoi(next());
         else if (k == "--radius") a.bil.radius = std::atoi(next());
@@ -69,10 +73,19 @@ Args parse(int argc, char** argv) {
         else if (k == "--iters") a.dif.iterations = std::atoi(next());
         else if (k == "--kappa") a.dif.kappa = std::atof(next());
         else if (k == "--dt") a.dif.dt = std::atof(next());
+        else if (k == "--fuse") a.launch.fuse = std::atoi(next());
+        else if (k == "--zchunk") a.launch.zchunk = std::atoi(next());
         else if (k == "--device-info") a.info = true;
         else usage();
     }
     if (!a.info && a.input.empty()) usage();
+    // The fused diffusion kernel uses 2D blocks; this is its best measured
+    // shape on BrainWeb (scripts/gpu_ladder.sh).
+    if (a.impl == "cuda-fused" && !block_given) {
+        a.launch.bx = 32;
+        a.launch.by = 16;
+        a.launch.bz = 1;
+    }
     return a;
 }
 
@@ -103,24 +116,24 @@ int main(int argc, char** argv) {
 
     std::vector<double> total, h2d, kernel, d2h;
     const bool gpu = a.impl.rfind("cuda", 0) == 0;
-    if (gpu && a.impl != "cuda" && a.algo != "nlm") {
-        std::fprintf(stderr, "%s is only implemented for nlm\n", a.impl.c_str());
-        return 1;
+    GpuVariant variant = GpuVariant::Naive;
+    if (gpu) {
+        if (a.impl == "cuda-smem") variant = GpuVariant::Smem;
+        else if (a.impl == "cuda-sep" && a.algo == "nlm") variant = GpuVariant::Sep;
+        else if (a.impl == "cuda-fused" && a.algo == "diffusion") variant = GpuVariant::Fused;
+        else if (a.impl != "cuda") {
+            std::fprintf(stderr, "%s is not available for %s\n", a.impl.c_str(), a.algo.c_str());
+            return 1;
+        }
     }
     // One untimed warm-up run on the GPU absorbs context creation and JIT.
     const int runs = a.reps + (gpu ? 1 : 0);
     for (int r = 0; r < runs; ++r) {
         if (gpu) {
             GpuTiming t;
-            if (a.algo == "bilateral") t = bilateral_cuda_naive(in, out, a.bil, a.launch);
-            else if (a.algo == "nlm") {
-                const NlmVariant v = a.impl == "cuda-smem"  ? NlmVariant::Smem
-                                     : a.impl == "cuda-sep" ? NlmVariant::Sep
-                                                            : NlmVariant::Naive;
-                if (a.impl != "cuda" && a.impl != "cuda-smem" && a.impl != "cuda-sep") usage();
-                t = nlm_cuda(in, out, a.nlm, a.launch, v);
-            }
-            else if (a.algo == "diffusion") t = diffusion_cuda_naive(in, out, a.dif, a.launch);
+            if (a.algo == "bilateral") t = bilateral_cuda(in, out, a.bil, a.launch, variant);
+            else if (a.algo == "nlm") t = nlm_cuda(in, out, a.nlm, a.launch, variant);
+            else if (a.algo == "diffusion") t = diffusion_cuda(in, out, a.dif, a.launch, variant);
             else usage();
             if (r == 0) continue;
             total.push_back(t.total());

@@ -18,6 +18,11 @@ for impl in seq omp cuda; do
     $BIN --algo diffusion --impl $impl --reps 1 -i $IN -o $OUT/dif_$impl.vol
     $BIN --algo nlm --impl $impl --reps 1 --search 2 -i $IN -o $OUT/nlm_$impl.vol
 done
+$BIN --algo bilateral --impl cuda-smem  --reps 1 -i $IN -o $OUT/bil_cuda-smem.vol
+$BIN --algo diffusion --impl cuda-smem  --reps 1 -i $IN -o $OUT/dif_cuda-smem.vol
+$BIN --algo diffusion --impl cuda-fused --reps 1 -i $IN -o $OUT/dif_cuda-fused.vol
+$BIN --algo nlm       --impl cuda-smem  --reps 1 --search 2 -i $IN -o $OUT/nlm_cuda-smem.vol
+$BIN --algo nlm       --impl cuda-sep   --reps 1 --search 2 -i $IN -o $OUT/nlm_cuda-sep.vol
 
 eval_args=(--clean $DATA/clean.vol --labels $DATA/labels.vol)
 echo "--- noisy input"

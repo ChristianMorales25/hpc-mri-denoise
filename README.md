@@ -12,9 +12,9 @@ CIIC 5019 High-Performance Computing, University of Puerto Rico at Mayagüez.
 
 | Stage | Sequential | OpenMP | CUDA naive | CUDA optimized |
 |---|:-:|:-:|:-:|:-:|
-| Bilateral filter | ✅ | ✅ | ✅ | ⬜ |
+| Bilateral filter | ✅ | ✅ | ✅ | ✅ `cuda-smem` |
 | Non-local means | ✅ | ✅ | ✅ | ✅ `cuda-smem`, `cuda-sep` |
-| Anisotropic diffusion | ✅ | ✅ | ✅ | ⬜ |
+| Anisotropic diffusion | ✅ | ✅ | ✅ | ✅ `cuda-smem`, `cuda-fused` |
 | Segmentation + morphology | ⬜ | ⬜ | ⬜ | ⬜ |
 | Connected-component labeling | ⬜ | ⬜ | ⬜ | ⬜ |
 
@@ -82,10 +82,16 @@ noise levels 3, 5, 7, 9 % (change with `--noise`).
     -i data/synth128/noisy_5.vol -o results/nlm.vol
 ```
 
-`--impl` is `seq`, `omp`, or `cuda` (naive GPU) for every filter. NLM also has
-`cuda-smem` (shared-memory tile) and `cuda-sep` (shared memory plus separable
-patch distances); `scripts/nlm_variants.sh` and `scripts/nlm_block_sweep.sh`
-compare them.
+`--impl` is `seq`, `omp`, `cuda` (naive GPU), or `cuda-smem` (shared-memory
+tile with halo) for every filter. NLM also has `cuda-sep` (shared memory plus
+separable patch distances), and diffusion has `cuda-fused` (2.5D z-marching
+that runs `--fuse K` iterations per launch, default 2, on a 2D block, default
+32,16,1).
+
+Comparison scripts: `scripts/nlm_variants.sh` and `scripts/nlm_block_sweep.sh`
+for NLM; `scripts/gpu_ladder.sh` (block shapes, fusion depth) and
+`scripts/diffusion_sizes.sh` (problem size) for bilateral and diffusion;
+`scripts/check_variants.sh` checks every optimized output against OpenMP.
 
 Each run prints one JSON line with the median time over `--reps` runs. CUDA
 runs also report host-to-device, kernel, and device-to-host time separately.

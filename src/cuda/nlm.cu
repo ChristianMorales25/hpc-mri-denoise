@@ -2,6 +2,7 @@
 #include <string>
 
 #include "cuda_check.cuh"
+#include "tile.cuh"
 #include "filters.hpp"
 
 namespace {
@@ -42,20 +43,6 @@ __global__ void nlm_naive_kernel(const float* __restrict__ in, float* __restrict
     if (wmax == 0.0f) wmax = 1.0f;
     const float c = in[(size_t(z) * ny + y) * nx + x];
     out[(size_t(z) * ny + y) * nx + x] = (sum + wmax * c) / (wsum + wmax);
-}
-
-// Cooperatively copies the block's input region plus a halo of H voxels on
-// every side into shared memory. Coordinates are clamped on load, which gives
-// the same replicate-border behavior as the CPU version.
-__device__ void load_tile(const float* __restrict__ in, float* tile, int nx, int ny, int nz, int ox, int oy,
-                          int oz, int tx, int ty, int tz) {
-    const int tid = (threadIdx.z * blockDim.y + threadIdx.y) * blockDim.x + threadIdx.x;
-    const int nthreads = blockDim.x * blockDim.y * blockDim.z;
-    const int n = tx * ty * tz;
-    for (int i = tid; i < n; i += nthreads) {
-        const int lx = i % tx, ly = (i / tx) % ty, lz = i / (tx * ty);
-        tile[i] = in[(size_t(clampi(oz + lz, nz)) * ny + clampi(oy + ly, ny)) * nx + clampi(ox + lx, nx)];
-    }
 }
 
 // ---------------------------------------------------------------------------
@@ -201,11 +188,11 @@ __global__ void nlm_sep_kernel(const float* __restrict__ in, float* __restrict__
     out[(size_t(z) * ny + y) * nx + x] = (sum + wmax * T(cx, cy, cz)) / (wsum + wmax);
 }
 
-size_t smem_bytes(NlmVariant v, const dim3& b, int S, int P) {
+size_t smem_bytes(GpuVariant v, const dim3& b, int S, int P) {
     const size_t H = S + P;
     const size_t tile = (b.x + 2 * H) * (b.y + 2 * H) * (b.z + 2 * H);
-    if (v == NlmVariant::Smem) return tile * sizeof(float);
-    if (v == NlmVariant::Sep) {
+    if (v == GpuVariant::Smem) return tile * sizeof(float);
+    if (v == GpuVariant::Sep) {
         const size_t rx = b.x + 2 * P, ry = b.y + 2 * P, rz = b.z + 2 * P;
         return (tile + rx * ry * rz + b.x * ry * rz + b.x * b.y * rz) * sizeof(float);
     }
@@ -215,13 +202,14 @@ size_t smem_bytes(NlmVariant v, const dim3& b, int S, int P) {
 }  // namespace
 
 GpuTiming nlm_cuda(const VolumeF& in, VolumeF& out, const NlmParams& p, const LaunchConfig& cfg,
-                   NlmVariant variant) {
+                   GpuVariant variant) {
+    if (variant == GpuVariant::Fused) throw std::runtime_error("nlm has no fused variant");
     const dim3 block(cfg.bx, cfg.by, cfg.bz);
     const size_t shmem = smem_bytes(variant, block, p.search_radius, p.patch_radius);
-    auto kernel = variant == NlmVariant::Naive ? nlm_naive_kernel
-                  : variant == NlmVariant::Smem ? nlm_smem_kernel
+    auto kernel = variant == GpuVariant::Naive ? nlm_naive_kernel
+                  : variant == GpuVariant::Smem ? nlm_smem_kernel
                                                 : nlm_sep_kernel;
-    if (variant == NlmVariant::Sep) {
+    if (variant == GpuVariant::Sep) {
         const int P = p.patch_radius;
         const long nD = long(block.x + 2 * P) * (block.y + 2 * P) * (block.z + 2 * P);
         if (nD > long(kSepMaxPerThread) * block.x * block.y * block.z)
