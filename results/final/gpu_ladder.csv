@@ -1,0 +1,66 @@
+algo,impl,param,block,kernel_ms,total_ms
+bilateral,cuda,r=2,8x8x4,4.670,13.922
+bilateral,cuda-smem,r=2,8x8x4,3.137,10.221
+bilateral,cuda,r=3,8x8x4,13.609,21.300
+bilateral,cuda-smem,r=3,8x8x4,8.855,15.881
+diffusion,cuda,it=20,8x8x4,7.795,15.167
+diffusion,cuda-smem,it=20,8x8x4,13.848,21.359
+bilateral,cuda,r=2,16x8x2,5.948,15.003
+bilateral,cuda-smem,r=2,16x8x2,4.217,12.879
+bilateral,cuda,r=3,16x8x2,13.986,21.517
+bilateral,cuda-smem,r=3,16x8x2,9.385,16.667
+diffusion,cuda,it=20,16x8x2,7.631,15.448
+diffusion,cuda-smem,it=20,16x8x2,15.923,26.062
+bilateral,cuda,r=2,32x4x2,5.909,13.860
+bilateral,cuda-smem,r=2,32x4x2,4.349,11.415
+bilateral,cuda,r=3,32x4x2,13.909,21.690
+bilateral,cuda-smem,r=3,32x4x2,9.524,17.245
+diffusion,cuda,it=20,32x4x2,7.611,14.936
+diffusion,cuda-smem,it=20,32x4x2,17.980,25.483
+bilateral,cuda,r=2,32x8x1,5.909,15.059
+bilateral,cuda-smem,r=2,32x8x1,4.543,13.947
+bilateral,cuda,r=3,32x8x1,13.900,21.479
+bilateral,cuda-smem,r=3,32x8x1,9.978,17.388
+diffusion,cuda,it=20,32x8x1,7.513,15.833
+diffusion,cuda-smem,it=20,32x8x1,18.995,27.383
+bilateral,cuda,r=2,16x16x1,5.976,14.092
+bilateral,cuda-smem,r=2,16x16x1,4.575,12.576
+bilateral,cuda,r=3,16x16x1,14.109,22.514
+bilateral,cuda-smem,r=3,16x16x1,9.839,18.616
+diffusion,cuda,it=20,16x16x1,7.581,15.605
+diffusion,cuda-smem,it=20,16x16x1,18.846,26.565
+diffusion,cuda-fused,K=1,32x8x1,7.885,16.633
+diffusion,cuda-fused,K=2,32x8x1,7.651,15.517
+diffusion,cuda-fused,K=3,32x8x1,12.312,21.369
+diffusion,cuda-fused,K=4,32x8x1,,
+diffusion,cuda-fused,K=6,32x8x1,,
+diffusion,cuda-fused,K=8,32x8x1,,
+diffusion,cuda-fused,K=1,32x16x1,7.800,15.655
+diffusion,cuda-fused,K=2,32x16x1,6.134,13.179
+diffusion,cuda-fused,K=3,32x16x1,6.553,14.998
+diffusion,cuda-fused,K=4,32x16x1,8.955,19.288
+diffusion,cuda-fused,K=6,32x16x1,20.848,29.546
+diffusion,cuda-fused,K=8,32x16x1,,
+diffusion,cuda-fused,K=1,64x8x1,7.550,15.880
+diffusion,cuda-fused,K=2,64x8x1,8.534,16.809
+diffusion,cuda-fused,K=3,64x8x1,13.811,22.168
+diffusion,cuda-fused,K=4,64x8x1,,
+diffusion,cuda-fused,K=6,64x8x1,,
+diffusion,cuda-fused,K=8,64x8x1,,
+diffusion,cuda-fused,K=1,32x32x1,8.272,17.379
+diffusion,cuda-fused,K=2,32x32x1,6.832,14.375
+diffusion,cuda-fused,K=3,32x32x1,7.111,14.995
+diffusion,cuda-fused,K=4,32x32x1,8.721,17.335
+diffusion,cuda-fused,K=6,32x32x1,11.540,19.543
+diffusion,cuda-fused,K=8,32x32x1,16.404,25.061
+diffusion,cuda-fused,K=1,64x16x1,7.968,15.405
+diffusion,cuda-fused,K=2,64x16x1,7.699,15.219
+diffusion,cuda-fused,K=3,64x16x1,9.186,18.970
+diffusion,cuda-fused,K=4,64x16x1,11.095,18.800
+diffusion,cuda-fused,K=6,64x16x1,19.176,26.995
+diffusion,cuda-fused,K=8,64x16x1,,
+diffusion,cuda-fused,K=4 zc=8,32x16x1,12.820,20.362
+diffusion,cuda-fused,K=4 zc=16,32x16x1,10.264,18.303
+diffusion,cuda-fused,K=4 zc=32,32x16x1,8.874,16.410
+diffusion,cuda-fused,K=4 zc=64,32x16x1,8.307,16.132
+diffusion,cuda-fused,K=4 zc=0,32x16x1,8.212,15.364

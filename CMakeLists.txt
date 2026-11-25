@@ -26,9 +26,11 @@ add_library(denoise_core
   src/cpu/bilateral.cpp
   src/cpu/nlm.cpp
   src/cpu/diffusion.cpp
+  src/cpu/segment.cpp
   src/cuda/bilateral.cu
   src/cuda/nlm.cu
   src/cuda/diffusion.cu
+  src/cuda/segment.cu
   src/cuda/device.cu
 )
 target_include_directories(denoise_core PUBLIC include)
@@ -41,3 +43,7 @@ target_compile_options(denoise_core PRIVATE
 add_executable(denoise src/main.cpp)
 target_link_libraries(denoise PRIVATE denoise_core)
 target_compile_options(denoise PRIVATE -O3 -Wall -Wextra)
+
+add_executable(segment src/segment_main.cpp)
+target_link_libraries(segment PRIVATE denoise_core)
+target_compile_options(segment PRIVATE -O3 -Wall -Wextra)

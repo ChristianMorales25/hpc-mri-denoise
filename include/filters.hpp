@@ -29,8 +29,8 @@ void bilateral_cpu(const VolumeF& in, VolumeF& out, const BilateralParams& p, bo
 void nlm_cpu(const VolumeF& in, VolumeF& out, const NlmParams& p, bool parallel);
 void diffusion_cpu(const VolumeF& in, VolumeF& out, const DiffusionParams& p, bool parallel);
 
-// GPU implementations. Timings (milliseconds) are split so the report can
-// show transfer cost separately from compute.
+// GPU implementations. Timings (milliseconds) are split so the transfer cost
+// can be measured separately from compute.
 struct GpuTiming {
     float h2d_ms = 0, kernel_ms = 0, d2h_ms = 0;
     float total() const { return h2d_ms + kernel_ms + d2h_ms; }

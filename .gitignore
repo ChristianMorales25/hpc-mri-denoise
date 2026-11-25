@@ -4,3 +4,6 @@ __pycache__/
 data/*
 !data/.gitkeep
 results/**/*.vol
+# Intermediate outputs of the sweep scripts; the curated CSVs are in results/final.
+results/*.csv
+results/final/run.log

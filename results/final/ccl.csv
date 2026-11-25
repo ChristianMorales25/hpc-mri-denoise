@@ -1,0 +1,7 @@
+segmentation,mode,impl,threads,nx,ny,nz,reps,time_ms,components,label_mismatches_vs_seq
+noisy_5,ccl,seq,1,181,217,181,3,274.737,14271,0
+noisy_5,ccl,omp,12,181,217,181,3,66.282,14271,0
+noisy_5,ccl,cuda,0,181,217,181,5,2.9,14271,0
+nlm_5,ccl,seq,1,181,217,181,3,224.195,582,0
+nlm_5,ccl,omp,12,181,217,181,3,54.61,582,0
+nlm_5,ccl,cuda,0,181,217,181,5,2.921,582,0
